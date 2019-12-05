@@ -105,7 +105,7 @@ class Tetris(gym.Env):
         crash.write(str(self.rotation)+'\n')
         
 
-    def xSetter(self,val):
+    def  xSetter(self,val):
         #assert val <=9 and val >=0
         self.marker[1] = val
         if not (val <= 9 and val >= 0):
@@ -258,7 +258,7 @@ class Tetris(gym.Env):
             #print(f'touched {self.touched} times')
             self.touched += 1
         self.checkValid()
-        if (self.touched == 3):
+        if (self.touched >= 3):
             self.setPiece()
         if self.running:
             assert self.xSetter(self.marker[1])
@@ -273,6 +273,8 @@ class Tetris(gym.Env):
                 if self.board[y+1][x] == 2:
                     return True
             except IndexError as e:
+                print(f'Index error {y,x}')
+                exit()
                 continue
         return False
 
@@ -379,7 +381,7 @@ class Tetris(gym.Env):
                     ori = list(self.marker)
                     if x > 9:
                         break
-                    while x < 0 or self.board[y][x] == 2:
+                    while x < 0 and self.board[y][x] == 2:
                         print('383', end = '')
                         if not self.xSetter(self.marker[1] + 1):
                             self.marker = ori
@@ -391,7 +393,7 @@ class Tetris(gym.Env):
                 elif x > self.marker[1]:#touching to the right
                     if x < 0:
                         break
-                    while x > 9 or self.board[y][x] == 2:
+                    while x > 9 and self.board[y][x] == 2:
                         print('395', end = '')
                         if not self.xSetter(self.marker[1] - 1):
                             self.marker = ori
@@ -421,6 +423,8 @@ class Tetris(gym.Env):
             assert y <= 19, "y value was " + str(y)
             assert x >= 0, "x value was " + str(x)
             assert x <= 9, "x value was " + str(x)
+            if self.board[y][x] == 2:
+                self.endGame()
             self.board[y][x] = 2
         self.clear()
         if len(self.bag) < 5:
