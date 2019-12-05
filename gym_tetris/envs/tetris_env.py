@@ -103,6 +103,22 @@ class Tetris(gym.Env):
         crash.write(str(self.marker)+'\n')
         crash.write(str(self.piece)+'\n')
         crash.write(str(self.rotation)+'\n')
+        
+
+    def xSetter(self,val):
+        #assert val <=9 and val >=0
+        self.marker[1] = val
+        if not (val <= 9 and val >= 0):
+            print(f'Out of bounds with val = {val}')
+            return False
+        ori = self.marker[1]
+        self.marker[1] = val
+        for y,x in self.orientation():
+            if not (x <= 9 and x >= 0):
+                print(f'Out of bounds with val = {val}')
+                return False
+        return True
+        
 
     def get_reward(self):
         """ Reward is given for XY. """
@@ -152,9 +168,9 @@ class Tetris(gym.Env):
         lowest = {}
         lowestPosition = -2
         for y,x in orientation:
-            assert y <= 19, "y value was " + str(y) + " lowest[x] + y = " + str(lowest[x] + y) + " " + str(orientation)
-            assert x >= 0, "x value was " + str(x) + " lowest[x] + y = " + str(lowest[x] + y) + " " + str(orientation)
-            assert x <= 9, "x value was " + str(x) + " lowest[x] + y = " + str(lowest[x] + y) + " " + str(orientation)
+            assert y <= 19, "y value was " + str(y) + str(orientation)
+            assert x >= 0, "x value was " + str(x) + str(orientation)
+            assert x <= 9, "x value was " + str(x) + str(orientation)
             if x in lowest:
                 lowest[x] = y - self.marker[0] if lowest[x] < y - self.marker[0] else lowest[x]
             else:
@@ -244,6 +260,8 @@ class Tetris(gym.Env):
         self.checkValid()
         if (self.touched == 3):
             self.setPiece()
+        if self.running:
+            assert self.xSetter(self.marker[1])
 
     def checkTouching(self):#checks if tetrimino is touching something form the bottom
         for y,x in self.coords:
@@ -328,27 +346,27 @@ class Tetris(gym.Env):
             y,x = z
             if changed:
                 y,x = self.coords[i]
-            if y < 0:
-                continue
             if x < 0:
                 while x < 0:
-                    self.marker[1] += 1
+                    self.xSetter(self.marker[1] + 1)
                     self.coords = self.orientation()
                     y,x = self.coords[i]
                     changed = True
             elif x>9:
                 while x>9:
-                    self.marker[1] -= 1
+                    self.xSetter(self.marker[1] - 1)
                     self.coords = self.orientation()
                     y,x = self.coords[i]
                     changed = True
+            if y < 0:
+                continue
             if y > 19:
                while y > 19:
                     self.marker[0] -= 1
                     self.coords = self.orientation()
                     y,x = self.coords[i]
                     changed = True
-            if self.board[y][x] == 2:
+            if y >= 0 and self.board[y][x] == 2:
                 if y > self.marker[0] and (y > 0):
                     while self.board[y][x] == 2  and (y > 0):
                         if self.marker[0] < 1:
@@ -358,18 +376,27 @@ class Tetris(gym.Env):
                         y,x = self.coords[i]
                         changed = True
                 if x < self.marker[1]:#touching to the left
+                    ori = list(self.marker)
                     if x > 9:
                         break
-                    while self.board[y][x] == 2:
-                        self.marker[1] += 1
+                    while x < 0 or self.board[y][x] == 2:
+                        print('383', end = '')
+                        if not self.xSetter(self.marker[1] + 1):
+                            self.marker = ori
+                            break
+                        #self.marker[1] += 1
                         self.coords = self.orientation()
                         y,x = self.coords[i]
                         changed = True
                 elif x > self.marker[1]:#touching to the right
                     if x < 0:
                         break
-                    while self.board[y][x] == 2:
-                        self.marker[1] -= 1
+                    while x > 9 or self.board[y][x] == 2:
+                        print('395', end = '')
+                        if not self.xSetter(self.marker[1] - 1):
+                            self.marker = ori
+                            break
+                        #self.marker[1] -= 1
                         assert self.marker[1] >= 0 and self.marker[1] <= 9, f"x value was {self.marker[1]}"
                         self.coords = self.orientation()
                         y,x = self.coords[i]
@@ -377,9 +404,10 @@ class Tetris(gym.Env):
         if self.overlapCheck():
             self.marker = ori
             self.marker[0] -= 1
-            if times < 5:
-                print(f'recursion {times} times')
-                self.checkValid(times + 1)
+            if times == 5:
+                self.endGame()
+                return
+            self.checkValid(times + 1)
         return
 
     def setPiece(self):#sets tetrimino in place and resets some info used for tracking it
@@ -422,6 +450,7 @@ class Tetris(gym.Env):
             if y > 19:
                 return True
             if self.board[y][x] == 2:
+                print(f'overlapped {y,x}')
                 return True
         return False
 
