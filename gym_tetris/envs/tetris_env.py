@@ -14,7 +14,7 @@ class Tetris(gym.Env):
         self.bag = self.newBag()
         board = [0 for x in range(10)]
         board = [list(board) for x in range(20)]
-        self.action_space = gym.spaces.Discrete(7)
+        self.action_space = gym.spaces.Discrete(8)
         self.observation_space = gym.spaces.Box(0,2,[20,10])
         self.board = board
         self.piece = self.bag.pop()
@@ -244,6 +244,8 @@ class Tetris(gym.Env):
                     self.marker = [0,5]
         elif intake == 7:#rotate 180
             self.rotation += 2
+        self.coords = self.orientation()
+        self.checkValid()
         #mechanism for slowly falling, time based solution is inefficient for ML
         self.coords = self.orientation()
         touching = self.checkTouching()
@@ -257,7 +259,6 @@ class Tetris(gym.Env):
         if(touching):
             #print(f'touched {self.touched} times')
             self.touched += 1
-        self.checkValid()
         if (self.touched >= 3):
             self.setPiece()
         if self.running:
@@ -265,17 +266,12 @@ class Tetris(gym.Env):
 
     def checkTouching(self):#checks if tetrimino is touching something form the bottom
         for y,x in self.coords:
-            try:
-                if y + 1 < 0:
-                    continue
-                if y == 19:
-                    return True
-                if self.board[y+1][x] == 2:
-                    return True
-            except IndexError as e:
-                print(f'Index error {y,x}')
-                exit()
+            if y + 1 < 0:
                 continue
+            if y == 19:
+                return True
+            if self.board[y+1][x] == 2:
+                return True
         return False
 
     def orientation(self):#return list of tuples of coordinates of tetrimino when drawn
@@ -410,6 +406,7 @@ class Tetris(gym.Env):
                 self.endGame()
                 return
             self.checkValid(times + 1)
+        if changed: print(f'originally {ori}, corrected to {self.marker}')
         return
 
     def setPiece(self):#sets tetrimino in place and resets some info used for tracking it
